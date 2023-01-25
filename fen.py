@@ -125,7 +125,8 @@ class Position:
                     if(self.enpeassant is None):
                         self.enpeassant = char
                         continue
-                    raise Exception('Wrong en peassant ' + self.enpeassant + char)
+                    raise Exception('Wrong en peassant ' +
+                                    self.enpeassant + char)
                 if char.isnumeric():
                     self.enpeassant += char
                     state = 'space3'
@@ -211,11 +212,11 @@ class Position:
         """ TODO: Remove """
         return self.__str__()
     
-def diagram(pos, alignment = '', header = '', footer = ''):
+def pos2diagram(pos, alignment = '', header = '', footer = ''):
     """ Chess diagram in Wikipedia format """
     if type(pos) is not Position:
-        raise Exception("`diagram' must be called with a Position\
-        but received " + str(pos))
+        raise Exception("`pos2diagram' must be called with a \
+        Position but received " + str(pos))
 
     if not alignment in ['tright', 'tleft', '']:
         raise Exception("`alignment' must be `tright' or\
@@ -294,6 +295,7 @@ def substitute_vars(string, position):
     return result
 
 if __name__ == "__main__":
+    import argparse
     header_help = "add a header. See section Variables"
     footer_help = "add a footer. If FOOTER is not provided, the move \
 number and side to move are used. See section Variables"
@@ -316,8 +318,6 @@ number and side to move are used. See section Variables"
     %A1, ..., %H8          piece on a particular square as in FEN
     %%                     Literal `%' sign
 """
-                                  
-    import argparse
     parser = argparse.ArgumentParser(
         prog = 'python3 fen.py',
         description = 'Transforms a FEN code into a Wikipedia diagram',
@@ -342,7 +342,7 @@ number and side to move are used. See section Variables"
     position = Position(args.fen)
     header = substitute_vars(args.header, position)
     footer = substitute_vars(args.footer, position)
-    diagram = diagram(position,
+    diagram = pos2diagram(position,
                       alignment=args.alignment,
                       header=header,
                       footer=footer)
