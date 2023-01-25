@@ -261,7 +261,6 @@ def substitute_vars(string, position):
                 'H': 7}.get(char)
             if column is not None:
                 state = "number"
-                print(column)
                 continue
             state = "normal"
             if char == "m":
@@ -287,7 +286,6 @@ def substitute_vars(string, position):
             if char in "12345678":
                 row = 8-int(char)
                 result += str(position.squares[row][column])
-                print(position.squares[row][column])
                 column = None
                 state = "normal"
                 continue
@@ -327,11 +325,17 @@ number and side to move are used. See section Variables"
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('fen')
-    parser.add_argument('-H', '--header', default='',
+    parser.add_argument('-H', '--header',
+                        default='',
                         help=header_help)
-    parser.add_argument('-F', '--footer', default='',
+    parser.add_argument('-F', '--footer',
+                        default='',
+                        const='Las %s mueven',
+                        nargs='?',
                         help=footer_help)
-    parser.add_argument('-A', '--alignment', default='',
+    parser.add_argument('-A', '--alignment',
+                        default='',
+                        choices=['', 'tright', 'tleft'],
                         help=alignment_help)
     args = parser.parse_args()
 
