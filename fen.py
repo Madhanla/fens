@@ -26,6 +26,9 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING  FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 """
+class FenException(Exception):
+    """Syntax Error in FEN"""
+
 class Square:
     """Class that wraps  strings as only some letters  are valid piece
     names"""
@@ -33,9 +36,9 @@ class Square:
         if piece in "PBNRQKpbnrqk AaCcFfGgMmEeSsHhZzWw":
             self.piece = piece
         elif type(piece) is str:
-            raise Exception("Invalid piece '" + piece + "'")
+            raise FenException("Invalid piece " + piece)
         else:
-            raise Exception("Invalid piece")
+            raise FenException("Invalid piece")
 
     def isempty(self):
         return self.piece == ' '
@@ -64,7 +67,7 @@ class Square:
     def __repr__(self):
         """ TODO: Remove """
         return str(self.piece)
-        
+
 class Position:
     """A class that stores all the information about a chess position
     that one can unravel from its FEN code.
@@ -73,7 +76,7 @@ class Position:
     def __init__(self, fen):
         """ Parse a FEN code into a Position """
         if type(fen) is not str:
-            raise Exception("Invalid fen type")
+            raise FenException("Invalid fen type")
 
         # Empty board
         self.squares = [[Square(' ') for _ in range(8)] for _ in
@@ -93,6 +96,8 @@ class Position:
         # "move_number", in order of appearance in FEN
         state = 'board'
         for char in fen:
+            if state in ["space1", "space2", "space3"] and char != ' ':
+                raise FenException("Expected space but got " + char)
             if state == 'space1':
                 state = 'side'
                 continue
@@ -107,7 +112,7 @@ class Position:
                 if char in 'wb':
                     self.side = char
                     continue
-                raise Exception("Unknown side to move " + char)
+                raise FenException("Unknown side to move " + char)
             if state == 'castling':
                 if char.isspace():
                     state = 'enpeassant'
@@ -120,12 +125,13 @@ class Position:
                         self.castling = ''
                     self.castling += char
                     continue
+                raise FenException("Unkown castling side " + char)
             if state == 'enpeassant':
                 if char.isalpha():
                     if(self.enpeassant is None):
                         self.enpeassant = char
                         continue
-                    raise Exception('Wrong en peassant ' +
+                    raise FenException('Wrong en peassant ' +
                                     self.enpeassant + char)
                 if char.isnumeric():
                     self.enpeassant += char
@@ -134,28 +140,32 @@ class Position:
                 if char == '-':
                     state = 'space3'
                     continue
-                raise Exception('Unknown en peassant: ' + char)
+                raise FenException('Unknown en peassant: ' + char)
             if state == 'draw_moves':
                 if char.isspace():
                     state = 'move_number'
                     continue
-                self.draw_moves = 10*self.draw_moves + int(char)
-                continue
+                if char.isnumeric():
+                    self.draw_moves = 10*self.draw_moves + int(char)
+                    continue
+                raise FenException("Not a number for draw_moves: " + char)
             if state == 'move_number':
-                self.move_number = 10*self.move_number + int(char)
-                continue
+                if char.isnumeric():
+                    self.move_number = 10*self.move_number + int(char)
+                    continue
+                raise FenException("Not a number for move_number: " + char)
             if state == 'bar':
                 if char == '/':
                     state = 'board'
                     continue
-                raise Exception("Expected bar")
+                raise FenException("Expected bar")
 
             if state != 'board':
                 raise Exception("Unknown state " + state)
             if char.isnumeric():
                 char = int(char)
                 if char == 0:
-                    raise Exception("0 in fen")
+                    raise FenException("0 in fen")
                 while char != 0:
                     char -= 1
                     i += 1
@@ -164,7 +174,7 @@ class Position:
                         j += 1
                         state = 'bar'
                         if char != 0:
-                            raise Exception("Number too big in fen")
+                            raise FenException("Number too big in fen")
                         if j == 8:
                             state = 'space1'
                         continue
@@ -211,20 +221,20 @@ class Position:
     def __repr__(self):
         """ TODO: Remove """
         return self.__str__()
-    
+
 def pos2diagram(pos, alignment = '', header = '', footer = ''):
     """ Chess diagram in Wikipedia format """
     if type(pos) is not Position:
-        raise Exception("`pos2diagram' must be called with a \
+        raise TypeError("`pos2diagram' must be called with a \
         Position but received " + str(pos))
 
     if not alignment in ['tright', 'tleft', '']:
-        raise Exception("`alignment' must be `tright' or\
+        raise TypeError("`alignment' must be `tright' or\
         `tleft'. Invalid" + str(alignment))
 
     s = '{{Diagrama de ajedrez'
     s += '\n| ' + alignment
-    s += '\n| ' + header 
+    s += '\n| ' + header
     s += '\n|=\n'
     for j in range(8):
         s += ' ' + str(8-j) + ' '
@@ -282,7 +292,7 @@ def substitute_vars(string, position):
             if char == "%":
                 result += "%"
                 continue
-            raise Exception("Unrecognized variable name " + char)
+            raise FenException("Unrecognized variable name " + char)
         if state == "number":
             if char in "12345678":
                 row = 8-int(char)
@@ -290,7 +300,7 @@ def substitute_vars(string, position):
                 column = None
                 state = "normal"
                 continue
-            raise Exception("Nonexistent row " + char)
+            raise FenException("Nonexistent row " + char)
         raise Exception("Unknwon state " + state)
     return result
 
@@ -314,7 +324,7 @@ number and side to move are used. See section Variables"
     %e                     possible en peassant capture
     %d                     number of full moves since last capture
                            or pawn advance (see 50 moves rule)
-    %c                     castling rights as in FEN 
+    %c                     castling rights as in FEN
     %A1, ..., %H8          piece on a particular square as in FEN
     %%                     Literal `%' sign
 """
